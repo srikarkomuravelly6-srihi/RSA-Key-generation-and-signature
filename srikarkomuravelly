@@ -1,0 +1,56 @@
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.spec.*;
+import java.util.Base64;
+
+public class RSASignatureDemo {
+
+    private static final PSSParameterSpec PSS_SPEC = new PSSParameterSpec("SHA-512", "MGF1", MGF1ParameterSpec.SHA512, 64, 1);
+
+    public static void main(String[] args) {
+        try {
+            String message = "Interview test for honeywell";
+
+            KeyPair keys = createKeyPair();
+
+            byte[] signatureBytes = signMessage(message, keys.getPrivate());
+            String signature = Base64.getEncoder().encodeToString(signatureBytes);
+
+            boolean isValid = verifySignature(message, signatureBytes, keys.getPublic());
+
+            System.out.println("Message: " + message);
+            System.out.println("Signature: " + signature);
+
+        } catch (GeneralSecurityException e) {
+            System.err.println("error: " + e.getMessage());
+        }
+    }
+
+    private static KeyPair createKeyPair() throws GeneralSecurityException {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        return kpg.generateKeyPair();
+    }
+
+    private static byte[] signMessage(String msg, PrivateKey privateKey)
+            throws GeneralSecurityException {
+
+        Signature signer = Signature.getInstance("RSASSA-PSS");
+        signer.setParameter(PSS_SPEC);
+        signer.initSign(privateKey);
+        signer.update(msg.getBytes(StandardCharsets.UTF_8));
+
+        return signer.sign();
+    }
+
+    private static boolean verifySignature(String msg, byte[] signature, PublicKey publicKey)
+            throws GeneralSecurityException {
+
+        Signature verifier = Signature.getInstance("RSASSA-PSS");
+        verifier.setParameter(PSS_SPEC);
+        verifier.initVerify(publicKey);
+        verifier.update(msg.getBytes(StandardCharsets.UTF_8));
+
+        return verifier.verify(signature);
+    }
+}
